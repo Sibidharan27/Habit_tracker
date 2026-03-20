@@ -65,6 +65,12 @@ class DashboardScreen extends StatelessWidget {
           },
         ),
       ),
+      // body: Center(
+      //   child: Image.asset(
+      //     "assets/buildings/self_improvement/lvl0.png",
+      //     width: 120,
+      //   ),
+      // ),
     );
   }
 }

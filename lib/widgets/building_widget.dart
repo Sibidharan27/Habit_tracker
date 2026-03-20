@@ -126,6 +126,21 @@ class _BuildingWidgetState extends State<BuildingWidget> {
             SnackBar(content: Text("Habit completed! 🔥 Streak: $newStreak")),
           );
         },
+        onPanUpdate: (details) {
+          setState(() {
+            x += details.delta.dx;
+            y += details.delta.dy;
+          });
+        },
+
+        onPanEnd: (_) {
+          updatePosition();
+        },
+
+        child: Image.asset(
+          getBuildingImage(),
+          width: 80,
+        ),
       ),
     );
   }
