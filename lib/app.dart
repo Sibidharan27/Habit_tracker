@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'features/splash/splash_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(),
+
+      theme: ThemeData(
+        textTheme: GoogleFonts.poppinsTextTheme(),
+        primarySwatch: Colors.green,
+      ),
+
+      home: const SplashScreen(),
     );
   }
 }

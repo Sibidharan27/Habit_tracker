@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:vibration/vibration.dart';
 
 class BuildingWidget extends StatefulWidget {
 
@@ -27,6 +28,8 @@ class _BuildingWidgetState extends State<BuildingWidget> {
 
   late double x;
   late double y;
+  double scale = 1.0;
+  bool isGlowing = false;
 
   @override
   void initState() {
@@ -85,6 +88,33 @@ class _BuildingWidgetState extends State<BuildingWidget> {
       child: GestureDetector(
 
         onTap: () async {
+          if (await Vibration.hasVibrator()) {
+            Vibration.vibrate(duration: 80);
+          }
+
+          setState(() {
+            scale = 1.2;
+          });
+
+          await Future.delayed(const Duration(milliseconds: 150));
+
+          if (!mounted) return;
+
+          setState(() {
+            scale = 1.0;
+          });
+
+          setState(() {
+            isGlowing = true;
+          });
+
+          await Future.delayed(const Duration(milliseconds: 300));
+
+          if (!mounted) return;
+
+          setState(() {
+            isGlowing = false;
+          });
 
           final uid = FirebaseAuth.instance.currentUser!.uid;
 
@@ -100,20 +130,21 @@ class _BuildingWidgetState extends State<BuildingWidget> {
           DateTime lastCompleted = (data["lastCompleted"] as Timestamp).toDate();
           DateTime now = DateTime.now();
 
-          // Check if already completed today
+          if (!mounted) return;
+
+          final messenger = ScaffoldMessenger.of(context);
+
           if (lastCompleted.day == now.day &&
               lastCompleted.month == now.month &&
               lastCompleted.year == now.year) {
 
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               const SnackBar(content: Text("Already completed today ✅")),
             );
             return;
           }
 
           int newStreak = data["streak"] + 1;
-
-          // Calculate level
           int newLevel = newStreak ~/ 3;
 
           await docRef.update({
@@ -122,7 +153,10 @@ class _BuildingWidgetState extends State<BuildingWidget> {
             "lastCompleted": now,
           });
 
-          ScaffoldMessenger.of(context).showSnackBar(
+          if (!mounted) return;
+
+
+          messenger.showSnackBar(
             SnackBar(content: Text("Habit completed! 🔥 Streak: $newStreak")),
           );
         },
@@ -137,10 +171,33 @@ class _BuildingWidgetState extends State<BuildingWidget> {
           updatePosition();
         },
 
-        child: Image.asset(
-          getBuildingImage(),
-          width: 80,
-        ),
+          child: AnimatedScale(
+            scale: scale,
+            duration: const Duration(milliseconds: 200),
+            child: AnimatedScale(
+              scale: scale,
+              duration: const Duration(milliseconds: 200),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: isGlowing
+                          ? Colors.yellow.withValues(alpha: 0.8)
+                          : Colors.black.withValues(alpha: 0.3),
+                      blurRadius: isGlowing ? 20 : 8,
+                      spreadRadius: isGlowing ? 4 : 1,
+                      offset: const Offset(2, 4),
+                    ),
+                  ],
+                ),
+                child: Image.asset(
+                  getBuildingImage(),
+                  width: 80 + (widget.level * 10),
+                ),
+              ),
+            ),
+          ),
       ),
     );
   }
