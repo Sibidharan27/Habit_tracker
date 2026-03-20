@@ -14,6 +14,14 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("My City"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+            },
+          ),
+        ],
       ),
 
       body: Container(
@@ -49,6 +57,7 @@ class DashboardScreen extends StatelessWidget {
                   docId: doc.id,
                   posX: data["posX"],
                   posY: data["posY"],
+                  level: data["level"],
                 );
 
               }).toList(),

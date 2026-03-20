@@ -8,6 +8,7 @@ class BuildingWidget extends StatefulWidget {
   final String docId;
   final double posX;
   final double posY;
+  final int level;
 
   const BuildingWidget({
     super.key,
@@ -15,6 +16,7 @@ class BuildingWidget extends StatefulWidget {
     required this.docId,
     required this.posX,
     required this.posY,
+    required this.level,
   });
 
   @override
@@ -35,22 +37,27 @@ class _BuildingWidgetState extends State<BuildingWidget> {
 
   String getBuildingImage() {
 
+    int lvl = widget.level;
+
+    // Prevent going above 2 (since we have 3 images: 0,1,2)
+    if (lvl > 2) lvl = 2;
+
     switch (widget.category) {
 
       case "self_improvement":
-        return "assets/buildings/house.png";
+        return "assets/buildings/self_improvement/lvl$lvl.png";
 
       case "workout":
-        return "assets/buildings/gym.png";
+        return "assets/buildings/workout/lvl$lvl.png";
 
       case "study":
-        return "assets/buildings/library.png";
+        return "assets/buildings/study/lvl$lvl.png";
 
       case "work":
-        return "assets/buildings/office.png";
+        return "assets/buildings/work/lvl$lvl.png";
 
       default:
-        return "assets/buildings/house.png";
+        return "assets/buildings/self_improvement/lvl0.png";
     }
   }
 
@@ -77,23 +84,48 @@ class _BuildingWidgetState extends State<BuildingWidget> {
       top: y,
       child: GestureDetector(
 
-        onPanUpdate: (details) {
+        onTap: () async {
 
-          setState(() {
-            x += details.delta.dx;
-            y += details.delta.dy;
+          final uid = FirebaseAuth.instance.currentUser!.uid;
+
+          final docRef = FirebaseFirestore.instance
+              .collection("users")
+              .doc(uid)
+              .collection("habits")
+              .doc(widget.docId);
+
+          final doc = await docRef.get();
+          final data = doc.data()!;
+
+          DateTime lastCompleted = (data["lastCompleted"] as Timestamp).toDate();
+          DateTime now = DateTime.now();
+
+          // Check if already completed today
+          if (lastCompleted.day == now.day &&
+              lastCompleted.month == now.month &&
+              lastCompleted.year == now.year) {
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Already completed today ✅")),
+            );
+            return;
+          }
+
+          int newStreak = data["streak"] + 1;
+
+          // Calculate level
+          int newLevel = newStreak ~/ 3;
+
+          await docRef.update({
+            "streak": newStreak,
+            "level": newLevel,
+            "lastCompleted": now,
           });
 
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Habit completed! 🔥 Streak: $newStreak")),
+          );
         },
-
-        onPanEnd: (_) {
-          updatePosition();
-        },
-
-        child: Image.asset(
-          getBuildingImage(),
-          width: 80,
-        ),
       ),
     );
   }
