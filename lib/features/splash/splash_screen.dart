@@ -15,6 +15,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void initState() {
     super.initState();
     Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const AuthWrapper()),
@@ -28,15 +29,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            "assets/splash/splash.png",
-            fit: BoxFit.cover,
-          ),
-          const Center(
-            child: CircularProgressIndicator(
-              color: Colors.white,
-            ),
-          )
+          Image.asset("assets/splash/splash.png", fit: BoxFit.cover),
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
         ],
       ),
     );

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
-import '../dashboard/dashboard_screen.dart';
+import '../dashboard/main_scaffold.dart';
 import 'login_screen.dart';
 
 class AuthWrapper extends ConsumerWidget {
@@ -13,18 +13,20 @@ class AuthWrapper extends ConsumerWidget {
 
     return authState.when(
       data: (user) {
+        // Firebase persists auth automatically — if user != null they're still logged in
         if (user != null) {
-          return DashboardScreen();
+          return const MainScaffold();
         } else {
-          return LoginScreen();
+          return const LoginScreen();
         }
       },
       loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        backgroundColor: Color(0xFF1B5E20),
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
       ),
-      error: (e, _) => Scaffold(
-        body: Center(child: Text("Error: $e")),
-      ),
+      error: (e, _) => const LoginScreen(),
     );
   }
 }
