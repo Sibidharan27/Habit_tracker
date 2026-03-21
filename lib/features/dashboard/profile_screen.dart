@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../authentication/login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -201,6 +202,12 @@ class ProfileScreen extends StatelessWidget {
                           child: GestureDetector(
                             onTap: () async {
                               await FirebaseAuth.instance.signOut();
+                              if (!context.mounted) return;
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                    (route) => false,
+                              );
                             },
                             child: Container(
                               width: double.infinity,

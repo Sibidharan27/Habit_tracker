@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
-import '../dashboard/dashboard_screen.dart';
+import '../dashboard/main_scaffold.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -20,7 +20,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _formKey = GlobalKey<FormState>();
 
   bool isLoading = false;
-  bool isSendingReset = false;
   bool _obscurePassword = true;
 
   late AnimationController _animController;
@@ -59,7 +58,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        MaterialPageRoute(builder: (_) => const MainScaffold()),
             (route) => false,
       );
     } catch (e) {
@@ -77,92 +76,97 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   Future<void> _handleForgotPassword() async {
-    String email = emailController.text.trim();
+    // Always show the dialog — pre-fill with whatever is in the email field
+    final emailDialogController = TextEditingController(
+      text: emailController.text.trim(),
+    );
 
-    // If email field empty, ask via dialog
-    if (email.isEmpty) {
-      final emailDialogController = TextEditingController();
-      final entered = await showDialog<String>(
-        context: context,
-        builder: (dialogCtx) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.lock_reset, color: Color(0xFF2E7D32)),
+    final entered = await showDialog<String>(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  "Reset Password",
-                  style: GoogleFonts.nunito(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    color: const Color(0xFF1B5E20),
-                  ),
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "Enter your registered email address.",
-                  style: GoogleFonts.nunito(color: Colors.grey.shade600, fontSize: 14),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: emailDialogController,
-                  keyboardType: TextInputType.emailAddress,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: "your@email.com",
-                    filled: true,
-                    fillColor: const Color(0xFFF1F8E9),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF43A047), width: 2),
-                    ),
-                    prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF43A047)),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogCtx, null),
-                child: Text("Cancel",
-                    style: GoogleFonts.nunito(
-                        color: Colors.grey.shade600, fontWeight: FontWeight.w700)),
+                child: const Icon(Icons.lock_reset, color: Color(0xFF2E7D32)),
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              const SizedBox(width: 12),
+              Text(
+                "Reset Password",
+                style: GoogleFonts.nunito(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  color: const Color(0xFF1B5E20),
                 ),
-                onPressed: () => Navigator.pop(dialogCtx, emailDialogController.text.trim()),
-                child: Text("Send Link",
-                    style: GoogleFonts.nunito(color: Colors.white, fontWeight: FontWeight.w700)),
               ),
             ],
-          );
-        },
-      );
-      emailDialogController.dispose();
-      if (entered == null || entered.isEmpty) return;
-      email = entered;
-    }
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Enter your registered email to receive a reset link.",
+                style: GoogleFonts.nunito(color: Colors.grey.shade600, fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailDialogController,
+                keyboardType: TextInputType.emailAddress,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: "your@email.com",
+                  filled: true,
+                  fillColor: const Color(0xFFF1F8E9),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF43A047), width: 2),
+                  ),
+                  prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF43A047)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              // Cancel — pop with null, no error shown
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text("Cancel",
+                  style: GoogleFonts.nunito(
+                      color: Colors.grey.shade600, fontWeight: FontWeight.w700)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => Navigator.pop(dialogCtx, emailDialogController.text.trim()),
+              child: Text("Send Link",
+                  style: GoogleFonts.nunito(color: Colors.white, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        );
+      },
+    );
 
-    if (!email.contains('@') || !email.contains('.')) {
+    // Do NOT manually dispose here — Flutter disposes it when the dialog closes.
+    // Calling dispose() before the dialog fully unmounts causes:
+    // "A TextEditingController was used after being disposed"
+
+    // User pressed Cancel — silent exit, no error
+    if (entered == null || entered.isEmpty) return;
+
+    // Validate email format
+    if (!entered.contains('@') || !entered.contains('.')) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text("Please enter a valid email address.",
@@ -174,20 +178,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       return;
     }
 
-    // Show loading
-    setState(() => isSendingReset = true);
-
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: entered);
       if (!mounted) return;
-      setState(() => isSendingReset = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Row(children: [
           const Icon(Icons.mark_email_read_rounded, color: Colors.white),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              "Reset link sent to $email\nCheck your inbox (and spam folder).",
+              "Reset link sent to $entered\nCheck your inbox (and spam folder).",
               style: GoogleFonts.nunito(fontWeight: FontWeight.w600, fontSize: 13),
             ),
           ),
@@ -199,7 +199,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       ));
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      setState(() => isSendingReset = false);
       String msg;
       switch (e.code) {
         case 'user-not-found':
@@ -228,7 +227,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       ));
     } catch (e) {
       if (!mounted) return;
-      setState(() => isSendingReset = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text("Unexpected error: $e",
             style: GoogleFonts.nunito(fontWeight: FontWeight.w600)),
@@ -338,16 +336,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             Align(
                               alignment: Alignment.centerRight,
                               child: GestureDetector(
-                                onTap: isSendingReset ? null : _handleForgotPassword,
-                                child: isSendingReset
-                                    ? const SizedBox(
-                                  width: 16, height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Color(0xFF2E7D32),
-                                  ),
-                                )
-                                    : Text(
+                                onTap: _handleForgotPassword,
+                                child: Text(
                                   "Forgot password? Reset",
                                   style: GoogleFonts.nunito(
                                     fontSize: 13,
