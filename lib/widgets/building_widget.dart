@@ -247,7 +247,10 @@ class _BuildingWidgetState extends State<BuildingWidget>
   void _delete(BuildContext ctx) {
     showDialog(
       context: ctx,
-      builder: (_) => AlertDialog(
+      // Use 'dialogCtx' — the dialog's own context — for all Navigator.pop calls.
+      // Using the parent 'ctx' after the widget is deleted from Firestore causes
+      // the widget to unmount, making ctx.mounted false and crashing on pop.
+      builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         title: Text('Demolish?',
             style: GoogleFonts.nunito(
@@ -257,7 +260,7 @@ class _BuildingWidgetState extends State<BuildingWidget>
             style: GoogleFonts.nunito(color: Colors.grey.shade600)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(dialogCtx),
             child: Text('Cancel',
                 style: GoogleFonts.nunito(
                     color: Colors.grey.shade500, fontWeight: FontWeight.w700)),
@@ -269,12 +272,12 @@ class _BuildingWidgetState extends State<BuildingWidget>
                   borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () async {
+              // Close dialog first, THEN delete — avoids mounted check issues
+              Navigator.pop(dialogCtx);
               final uid = FirebaseAuth.instance.currentUser!.uid;
               await FirebaseFirestore.instance
                   .collection('users').doc(uid).collection('habits')
                   .doc(widget.docId).delete();
-              if (!ctx.mounted) return;
-              Navigator.pop(ctx);
             },
             child: Text('Demolish 🏚️',
                 style: GoogleFonts.nunito(

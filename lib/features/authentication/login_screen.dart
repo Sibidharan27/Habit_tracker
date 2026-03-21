@@ -20,6 +20,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _formKey = GlobalKey<FormState>();
 
   bool isLoading = false;
+  bool isSendingReset = false;
   bool _obscurePassword = true;
 
   late AnimationController _animController;
@@ -76,15 +77,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   Future<void> _handleForgotPassword() async {
-    // Determine the email to use
     String email = emailController.text.trim();
 
-    // If email field is empty, show dialog to collect it
+    // If email field empty, ask via dialog
     if (email.isEmpty) {
       final emailDialogController = TextEditingController();
       final entered = await showDialog<String>(
         context: context,
-        builder: (ctx) {
+        builder: (dialogCtx) {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: Row(
@@ -112,7 +112,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  "Enter your email to receive a password reset link.",
+                  "Enter your registered email address.",
                   style: GoogleFonts.nunito(color: Colors.grey.shade600, fontSize: 14),
                 ),
                 const SizedBox(height: 16),
@@ -139,7 +139,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(ctx, null),
+                onPressed: () => Navigator.pop(dialogCtx, null),
                 child: Text("Cancel",
                     style: GoogleFonts.nunito(
                         color: Colors.grey.shade600, fontWeight: FontWeight.w700)),
@@ -149,10 +149,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   backgroundColor: const Color(0xFF2E7D32),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                onPressed: () {
-                  final typed = emailDialogController.text.trim();
-                  Navigator.pop(ctx, typed);
-                },
+                onPressed: () => Navigator.pop(dialogCtx, emailDialogController.text.trim()),
                 child: Text("Send Link",
                     style: GoogleFonts.nunito(color: Colors.white, fontWeight: FontWeight.w700)),
               ),
@@ -165,67 +162,80 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       email = entered;
     }
 
-    // Validate email format
     if (!email.contains('@') || !email.contains('.')) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Please enter a valid email address.",
-              style: GoogleFonts.nunito(fontWeight: FontWeight.w600)),
-          backgroundColor: Colors.red.shade600,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Please enter a valid email address.",
+            style: GoogleFonts.nunito(fontWeight: FontWeight.w600)),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
       return;
     }
 
+    // Show loading
+    setState(() => isSendingReset = true);
+
     try {
-      // Call Firebase directly — most reliable
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "Reset link sent to $email",
-                  style: GoogleFonts.nunito(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
+      setState(() => isSendingReset = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Row(children: [
+          const Icon(Icons.mark_email_read_rounded, color: Colors.white),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              "Reset link sent to $email\nCheck your inbox (and spam folder).",
+              style: GoogleFonts.nunito(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
           ),
-          backgroundColor: const Color(0xFF2E7D32),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+        ]),
+        backgroundColor: const Color(0xFF2E7D32),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() => isSendingReset = false);
+      String msg;
+      switch (e.code) {
+        case 'user-not-found':
+          msg = "No account found with that email.";
+          break;
+        case 'invalid-email':
+          msg = "Invalid email address format.";
+          break;
+        case 'too-many-requests':
+          msg = "Too many attempts. Try again later.";
+          break;
+        default:
+          msg = "Error: ${e.message ?? e.code}";
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Row(children: [
+          const Icon(Icons.error_outline, color: Colors.white),
+          const SizedBox(width: 8),
+          Expanded(child: Text(msg,
+              style: GoogleFonts.nunito(fontWeight: FontWeight.w600))),
+        ]),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
     } catch (e) {
       if (!mounted) return;
-      String msg = "Failed to send reset email.";
-      if (e.toString().contains('user-not-found')) {
-        msg = "No account found with that email.";
-      } else if (e.toString().contains('invalid-email')) {
-        msg = "Invalid email address.";
-      } else if (e.toString().contains('network')) {
-        msg = "Network error. Check your connection.";
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(msg,
-                style: GoogleFonts.nunito(fontWeight: FontWeight.w600))),
-          ]),
-          backgroundColor: Colors.red.shade700,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      setState(() => isSendingReset = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Unexpected error: $e",
+            style: GoogleFonts.nunito(fontWeight: FontWeight.w600)),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
     }
   }
 
@@ -328,8 +338,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             Align(
                               alignment: Alignment.centerRight,
                               child: GestureDetector(
-                                onTap: _handleForgotPassword,
-                                child: Text(
+                                onTap: isSendingReset ? null : _handleForgotPassword,
+                                child: isSendingReset
+                                    ? const SizedBox(
+                                  width: 16, height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFF2E7D32),
+                                  ),
+                                )
+                                    : Text(
                                   "Forgot password? Reset",
                                   style: GoogleFonts.nunito(
                                     fontSize: 13,
