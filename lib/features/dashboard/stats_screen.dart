@@ -82,7 +82,7 @@ class StatsScreen extends StatelessWidget {
                       physics: const NeverScrollableScrollPhysics(),
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: 1.55,
+                      childAspectRatio: 1.35,
                       children: [
                         _StatTile(emoji: '🏗️', value: '$total',
                             label: 'Total Habits',  color: const Color(0xFF43A047)),

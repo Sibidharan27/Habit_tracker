@@ -16,6 +16,13 @@ class NotificationService {
       ),
     );
     tz.initializeTimeZones();
+
+    // Request runtime permission for Android 13+
+    final android = _notifications.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android != null) {
+      await android.requestNotificationsPermission();
+    }
   }
 
   Future<void> showNotification(String title, String body) async {

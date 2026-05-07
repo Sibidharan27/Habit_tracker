@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
 import '../../core/services/firestore_service.dart';
+import '../dashboard/main_scaffold.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -24,6 +25,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
   bool isLoading = false;
   bool _obscurePassword = true;
+  bool _googleLoading = false;
 
   late AnimationController _animController;
   late Animation<double> _slideAnim;
@@ -114,6 +116,30 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     }
 
     if (mounted) setState(() => isLoading = false);
+  }
+
+  Future<void> _signUpWithGoogle() async {
+    setState(() => _googleLoading = true);
+    try {
+      final authService = ref.read(authServiceProvider);
+      final cred = await authService.signInWithGoogle();
+      if (cred == null) { setState(() => _googleLoading = false); return; }
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const MainScaffold()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Google Sign-Up failed: $e'),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+    }
+    if (mounted) setState(() => _googleLoading = false);
   }
 
   @override
@@ -327,6 +353,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
           // Register button
           _buildRegisterButton(),
 
+          const SizedBox(height: 16),
+
+          // Google Sign-Up
+          _buildGoogleButton(),
+
           const SizedBox(height: 20),
 
           Row(
@@ -499,6 +530,31 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildGoogleButton() {
+    return GestureDetector(
+      onTap: _googleLoading ? null : _signUpWithGoogle,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: double.infinity,
+        height: 52,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade300, width: 1.5),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 3))],
+        ),
+        child: _googleLoading
+            ? const Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5)))
+            : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Text('G', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF4285F4))),
+                const SizedBox(width: 10),
+                Text('Sign up with Google',
+                    style: GoogleFonts.nunito(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.grey.shade700)),
+              ]),
       ),
     );
   }

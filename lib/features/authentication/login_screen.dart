@@ -21,6 +21,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   bool isLoading = false;
   bool _obscurePassword = true;
+  bool _googleLoading = false;
 
   late AnimationController _animController;
   late Animation<double> _slideAnim;
@@ -73,6 +74,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       );
     }
     if (mounted) setState(() => isLoading = false);
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _googleLoading = true);
+    try {
+      final authService = ref.read(authServiceProvider);
+      final cred = await authService.signInWithGoogle();
+      if (cred == null) { setState(() => _googleLoading = false); return; }
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const MainScaffold()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Google Sign-In failed: $e'),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+    }
+    if (mounted) setState(() => _googleLoading = false);
   }
 
   Future<void> _handleForgotPassword() async {
@@ -355,6 +380,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             // Sign in button
                             _buildSignInButton(),
 
+                            const SizedBox(height: 16),
+
+                            // Google Sign-In
+                            _buildGoogleButton(),
+
                             const SizedBox(height: 20),
 
                             // Divider
@@ -630,6 +660,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildGoogleButton() {
+    return GestureDetector(
+      onTap: _googleLoading ? null : _signInWithGoogle,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: double.infinity,
+        height: 52,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade300, width: 1.5),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 3)),
+          ],
+        ),
+        child: _googleLoading
+            ? const Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5)))
+            : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                // Google G logo
+                Container(
+                  width: 22, height: 22,
+                  decoration: const BoxDecoration(shape: BoxShape.circle),
+                  child: const Text('G', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF4285F4))),
+                ),
+                const SizedBox(width: 10),
+                Text('Continue with Google',
+                    style: GoogleFonts.nunito(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.grey.shade700)),
+              ]),
       ),
     );
   }
